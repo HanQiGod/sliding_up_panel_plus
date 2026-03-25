@@ -1,0 +1,14 @@
+name: sliding_up_panel_plus
+description: A draggable Flutter widget that makes implementing a SlidingUpPanel much easier!
+version: 2.0.0+1
+
+environment:
+  sdk: ">=2.12.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
