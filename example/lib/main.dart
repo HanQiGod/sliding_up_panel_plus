@@ -6,270 +6,553 @@ Copyright: © 2021, Akshath Jain. All rights reserved.
 Licensing: See LICENSE in the project root.
 */
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-import 'package:sliding_up_panel_plus/sliding_up_panel_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:sliding_up_panel_plus/sliding_up_panel_plus.dart';
 
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong/latlong.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-
-void main() => runApp(SlidingUpPanelPlusExample());
+void main() => runApp(const SlidingUpPanelPlusExample());
 
 class SlidingUpPanelPlusExample extends StatelessWidget {
+  const SlidingUpPanelPlusExample({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.grey[200],
+      const SystemUiOverlayStyle(
+        systemNavigationBarColor: Color(0xFFF1F5F9),
         systemNavigationBarIconBrightness: Brightness.dark,
-        systemNavigationBarDividerColor: Colors.black,
+        systemNavigationBarDividerColor: Color(0xFFE2E8F0),
       ),
     );
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SlidingUpPanel Plus Example',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: HomePage(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0F766E)),
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final double _initFabHeight = 120.0;
-  double _fabHeight = 0;
-  double _panelHeightOpen = 0;
-  double _panelHeightClosed = 95.0;
+  static const double _panelHeightClosed = 112.0;
+  static const double _fabBaseHeight = 144.0;
 
-  @override
-  void initState() {
-    super.initState();
+  final PanelController _panelController = PanelController();
 
-    _fabHeight = _initFabHeight;
-  }
+  double _fabHeight = _fabBaseHeight;
+  double _panelHeightOpen = 0.0;
 
   @override
   Widget build(BuildContext context) {
-    _panelHeightOpen = MediaQuery.of(context).size.height * .80;
+    _panelHeightOpen = MediaQuery.of(context).size.height * 0.72;
 
     return Material(
       child: Stack(
         alignment: Alignment.topCenter,
         children: <Widget>[
           SlidingUpPanel(
+            controller: _panelController,
             maxHeight: _panelHeightOpen,
             minHeight: _panelHeightClosed,
             parallaxEnabled: true,
-            parallaxOffset: .5,
+            parallaxOffset: 0.18,
+            backdropEnabled: true,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x260F172A),
+                blurRadius: 24,
+                offset: Offset(0, -6),
+              ),
+            ],
             body: _body(),
-            panelBuilder: (sc) => _panel(sc),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(18.0),
-              topRight: Radius.circular(18.0),
-            ),
-            onPanelSlide: (double pos) => setState(() {
-              _fabHeight = pos * (_panelHeightOpen - _panelHeightClosed) +
-                  _initFabHeight;
-            }),
+            collapsed: _collapsedPanel(),
+            panelBuilder: _panel,
+            onPanelSlide: (double position) {
+              setState(() {
+                _fabHeight =
+                    position * (_panelHeightOpen - _panelHeightClosed) +
+                        _fabBaseHeight;
+              });
+            },
           ),
-
-          // the fab
           Positioned(
-            right: 20.0,
+            top: MediaQuery.of(context).padding.top + 20,
+            left: 20,
+            right: 20,
+            child: _topBar(),
+          ),
+          Positioned(
+            right: 20,
             bottom: _fabHeight,
             child: FloatingActionButton(
-              child: Icon(
-                Icons.gps_fixed,
-                color: Theme.of(context).primaryColor,
-              ),
-              onPressed: () {},
               backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF0F766E),
+              onPressed: () {
+                if (_panelController.isAttached &&
+                    _panelController.isPanelOpen) {
+                  _panelController.close();
+                } else if (_panelController.isAttached) {
+                  _panelController.open();
+                }
+              },
+              child: const Icon(Icons.tune),
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          Positioned(
-            top: 0,
-            child: ClipRRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).padding.top,
-                  color: Colors.transparent,
-                ),
-              ),
-            ),
+  Widget _topBar() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x140F172A),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
-
-          //the SlidingUpPanel Title
-          Positioned(
-            top: 52.0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24.0, 18.0, 24.0, 18.0),
-              child: Text(
-                "SlidingUpPanel Plus Example",
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color.fromRGBO(0, 0, 0, .25),
-                    blurRadius: 16.0,
+        ],
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Row(
+          children: <Widget>[
+            CircleAvatar(
+              backgroundColor: Color(0xFFCCFBF1),
+              foregroundColor: Color(0xFF0F766E),
+              child: Icon(Icons.explore),
+            ),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'SlidingUpPanel Plus',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '一个不依赖第三方地图包的可运行示例',
+                    style: TextStyle(color: Color(0xFF475569)),
                   ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _collapsedPanel() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Center(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.all(Radius.circular(999)),
+              ),
+              child: SizedBox(width: 36, height: 5),
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            '设计任务概览',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          SizedBox(height: 6),
+          Text(
+            '上滑查看更多卡片、进度和操作按钮。',
+            style: TextStyle(color: Color(0xFF64748B)),
           ),
         ],
       ),
     );
   }
 
-  Widget _panel(ScrollController sc) {
+  Widget _panel(ScrollController controller) {
     return MediaQuery.removePadding(
       context: context,
       removeTop: true,
       child: ListView(
-        controller: sc,
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(24, 18, 24, 32),
         children: <Widget>[
-          SizedBox(height: 12.0),
+          const Center(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.all(Radius.circular(999)),
+              ),
+              child: SizedBox(width: 36, height: 5),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            '项目控制面板',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '这个示例保留了 panelBuilder、拖拽、吸附和遮罩等核心能力，同时移除了旧版依赖带来的空安全报错。',
+            style: TextStyle(color: Color(0xFF64748B), height: 1.5),
+          ),
+          const SizedBox(height: 24),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: 30,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.all(Radius.circular(12.0)),
+            children: const <Widget>[
+              Expanded(
+                child: _MetricCard(
+                  title: '本周任务',
+                  value: '12',
+                  subtitle: '3 项等待确认',
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: _MetricCard(
+                  title: '完成率',
+                  value: '86%',
+                  subtitle: '较上周 +14%',
                 ),
               ),
             ],
           ),
-          SizedBox(height: 18.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          const SizedBox(height: 24),
+          const Text(
+            '快捷操作',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: <Widget>[
-              Text(
-                "Explore Pittsburgh",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 24.0),
-              ),
+              _actionChip('新建面板', Icons.add_box_outlined),
+              _actionChip('同步进度', Icons.sync_outlined),
+              _actionChip('分享预览', Icons.ios_share_outlined),
+              _actionChip('导出数据', Icons.download_outlined),
             ],
           ),
-          SizedBox(height: 36.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              _button("Popular", Icons.favorite, Colors.blue),
-              _button("Food", Icons.restaurant, Colors.red),
-              _button("Events", Icons.event, Colors.amber),
-              _button("More", Icons.more_horiz, Colors.green),
-            ],
+          const SizedBox(height: 24),
+          const Text(
+            '最近更新',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
           ),
-          SizedBox(height: 36.0),
-          Container(
-            padding: const EdgeInsets.only(left: 24.0, right: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text("Images", style: TextStyle(fontWeight: FontWeight.w600)),
-                SizedBox(height: 12.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    CachedNetworkImage(
-                      imageUrl:
-                          "https://images.fineartamerica.com/images-medium-large-5/new-pittsburgh-emmanuel-panagiotakis.jpg",
-                      height: 120.0,
-                      width: (MediaQuery.of(context).size.width - 48) / 2 - 2,
-                      fit: BoxFit.cover,
-                    ),
-                    CachedNetworkImage(
-                      imageUrl:
-                          "https://cdn.pixabay.com/photo/2016/08/11/23/48/pnc-park-1587285_1280.jpg",
-                      width: (MediaQuery.of(context).size.width - 48) / 2 - 2,
-                      height: 120.0,
-                      fit: BoxFit.cover,
-                    ),
-                  ],
-                ),
-              ],
+          const SizedBox(height: 12),
+          const _TimelineTile(
+            title: '交互示例已更新',
+            description: '移除过时依赖后，example 可以直接在 Flutter 3.35.7 下运行。',
+          ),
+          const _TimelineTile(
+            title: '空安全兼容完成',
+            description: 'Dart SDK 约束已放宽到 <4.0.0，避免 Dart 3 环境下直接报红。',
+          ),
+          const _TimelineTile(
+            title: '保留滚动联动能力',
+            description: '示例继续使用 panelBuilder 和 ListView，便于验证手势与滚动协作。',
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (_panelController.isAttached) {
+                  _panelController.close();
+                }
+              },
+              icon: const Icon(Icons.keyboard_arrow_down),
+              label: const Text('收起面板'),
             ),
           ),
-          SizedBox(height: 36.0),
-          Container(
-            padding: const EdgeInsets.only(left: 24.0, right: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text("About", style: TextStyle(fontWeight: FontWeight.w600)),
-                SizedBox(height: 12.0),
-                Text(
-                  """Pittsburgh is a city in the state of Pennsylvania in the United States, and is the county seat of Allegheny County. A population of about 302,407 (2018) residents live within the city limits, making it the 66th-largest city in the U.S. The metropolitan population of 2,324,743 is the largest in both the Ohio Valley and Appalachia, the second-largest in Pennsylvania (behind Philadelphia), and the 27th-largest in the U.S.\n\nPittsburgh is located in the southwest of the state, at the confluence of the Allegheny, Monongahela, and Ohio rivers. Pittsburgh is known both as "the Steel City" for its more than 300 steel-related businesses and as the "City of Bridges" for its 446 bridges. The city features 30 skyscrapers, two inclined railways, a pre-revolutionary fortification and the Point State Park at the confluence of the rivers. The city developed as a vital link of the Atlantic coast and Midwest, as the mineral-rich Allegheny Mountains made the area coveted by the French and British empires, Virginians, Whiskey Rebels, and Civil War raiders.\n\nAside from steel, Pittsburgh has led in manufacturing of aluminum, glass, shipbuilding, petroleum, foods, sports, transportation, computing, autos, and electronics. For part of the 20th century, Pittsburgh was behind only New York City and Chicago in corporate headquarters employment; it had the most U.S. stockholders per capita. Deindustrialization in the 1970s and 80s laid off area blue-collar workers as steel and other heavy industries declined, and thousands of downtown white-collar workers also lost jobs when several Pittsburgh-based companies moved out. The population dropped from a peak of 675,000 in 1950 to 370,000 in 1990. However, this rich industrial history left the area with renowned museums, medical centers, parks, research centers, and a diverse cultural district.\n\nAfter the deindustrialization of the mid-20th century, Pittsburgh has transformed into a hub for the health care, education, and technology industries. Pittsburgh is a leader in the health care sector as the home to large medical providers such as University of Pittsburgh Medical Center (UPMC). The area is home to 68 colleges and universities, including research and development leaders Carnegie Mellon University and the University of Pittsburgh. Google, Apple Inc., Bosch, Facebook, Uber, Nokia, Autodesk, Amazon, Microsoft and IBM are among 1,600 technology firms generating \$20.7 billion in annual Pittsburgh payrolls. The area has served as the long-time federal agency headquarters for cyber defense, software engineering, robotics, energy research and the nuclear navy. The nation's eighth-largest bank, eight Fortune 500 companies, and six of the top 300 U.S. law firms make their global headquarters in the area, while RAND Corporation (RAND), BNY Mellon, Nova, FedEx, Bayer, and the National Institute for Occupational Safety and Health (NIOSH) have regional bases that helped Pittsburgh become the sixth-best area for U.S. job growth.
-                  """,
-                  softWrap: true,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _button(String label, IconData icon, Color color) {
-    return Column(
-      children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Icon(icon, color: Colors.white),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.15), blurRadius: 8.0),
-            ],
+  Widget _actionChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFEFF),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 18, color: const Color(0xFF0F766E)),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        SizedBox(height: 12.0),
-        Text(label),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _body() {
-    return FlutterMap(
-      options: MapOptions(
-        center: LatLng(40.441589, -80.010948),
-        zoom: 13,
-        maxZoom: 15,
-      ),
-      layers: [
-        TileLayerOptions(
-          urlTemplate: "https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png",
-        ),
-        MarkerLayerOptions(
-          markers: [
-            Marker(
-              point: LatLng(40.441753, -80.011476),
-              builder: (ctx) =>
-                  Icon(Icons.location_on, color: Colors.blue, size: 48.0),
-              height: 60,
-            ),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color(0xFFCCFBF1),
+            Color(0xFFE2E8F0),
+            Color(0xFFF8FAFC),
           ],
         ),
-      ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 112, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                '拖动底部面板查看完整内容',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                '这个页面专门用于验证 sliding_up_panel_plus 在新版本 Flutter 下的基础可用性。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.6,
+                  color: Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 28),
+              Expanded(
+                child: Row(
+                  children: const <Widget>[
+                    Expanded(
+                      child: _ShowcaseCard(
+                        title: '手势拖拽',
+                        value: 'Smooth',
+                        icon: Icons.pan_tool_alt_outlined,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: _ShowcaseCard(
+                        title: '滚动联动',
+                        value: 'Linked',
+                        icon: Icons.swap_vert_circle_outlined,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const _InfoBanner(),
+              SizedBox(height: _panelHeightClosed + 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String value;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(title, style: const TextStyle(color: Color(0xFF64748B))),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF0F766E))),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineTile extends StatelessWidget {
+  const _TimelineTile({required this.title, required this.description});
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            width: 12,
+            height: 12,
+            margin: const EdgeInsets.only(top: 6),
+            decoration: const BoxDecoration(
+              color: Color(0xFF14B8A6),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    height: 1.5,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShowcaseCard extends StatelessWidget {
+  const _ShowcaseCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Icon(icon, color: const Color(0xFF0F766E)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(title, style: const TextStyle(color: Color(0xFF475569))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        children: <Widget>[
+          Icon(Icons.info_outline, color: Colors.white),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '如果你只想验证包本身，这个 example 已经足够，不再受旧版地图生态影响。',
+              style: TextStyle(color: Colors.white, height: 1.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
