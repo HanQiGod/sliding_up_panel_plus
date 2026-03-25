@@ -1,4 +1,7 @@
 # sliding_up_panel_plus
+
+# 技术支持邮箱(1539841933@qq.com)。
+
 [![pub package](https://img.shields.io/pub/v/sliding_up_panel_plus.svg)](https://pub.dev/packages/sliding_up_panel_plus)
 [![Platform](https://img.shields.io/badge/platform-android%20|%20ios-green.svg)](https://img.shields.io/badge/platform-Android%20%7C%20iOS-green.svg)
 

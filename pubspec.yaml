@@ -1,6 +1,6 @@
 name: sliding_up_panel_plus
-description: A draggable Flutter widget that makes implementing a SlidingUpPanel much easier!
-version: 2.0.0+1
+description: Flutter 升级 3.35.7 之后，对 sliding_up_panel 插件的升级（After Flutter upgrade 3.35.7, the upgrade of sliding_up_panel plugins.）。
+version: 2.1.0
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
